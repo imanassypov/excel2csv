@@ -26,9 +26,9 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration == total: 
         print()
 
-def searchfor (path, search):
+def searchcsv (indir, search):
     pattern = re.compile (search)
-    filelist = glob.glob(os.path.join(path, '*.csv'), recursive=False)
+    filelist = glob.glob(os.path.join(indir, '*.csv'), recursive=False)
     filecount = len(filelist)
     fileindex = 0
     #dictionary of lists, <filename>: <index><string>
@@ -53,6 +53,33 @@ def searchfor (path, search):
     #pp.pprint (hit_dict)
     return hit_dict
 
+def searchxls (indir, search):
+    pattern = re.compile (search)
+    filelist = glob.glob(os.path.join(indir, '*.xlsx'), recursive=False)
+    filecount = len(filelist)
+    fileindex = 0
+    #dictionary of lists, <filename>: <index><string>
+    hit_dict = {}
+    printProgressBar(0, filecount, prefix = 'XLS Search Progress:', suffix = 'Complete', length = 50)
+    for file in filelist:
+        fileindex = fileindex + 1
+        df1 = pd.ExcelFile(file)
+        for sheet in df1.sheet_names:
+            df2 = pd.read_excel(file, sheetname=sheet)
+            for row_index, row_series in df2.iterrows():
+                for col_index, col_series in row_series.iteritems():
+                    if re.search(pattern, str(col_series)):
+                        lines = ','.join(map(str, row_series.values)) 
+                        filename = os.path.join(indir, os.path.basename(file) + '_' + sheet + '.' + 'xlsx')
+
+                        if filename in hit_dict.keys():
+                            hit_dict[filename][row_index] = lines
+                        else:
+                            hit_dict[filename]={}
+                            hit_dict[filename][row_index] = lines
+        printProgressBar(fileindex, filecount, prefix = 'XLS Search Progress:', suffix = 'Complete', length = 50)
+    return hit_dict
+
 def printres (hit_dict):
     #pretty printer for dict
     pp = pprint.PrettyPrinter(indent=4)
@@ -61,18 +88,18 @@ def printres (hit_dict):
         for row in hit_dict[file]:
             print ('>\tR'+str(row)+'|', hit_dict[file][row].rstrip('\n'))
 
-def getsheets(indir, outdir):
+def dumpcsv(indir, outdir):
     path = os.path.join(indir, '*.xlsx')
     filelist = glob.glob(path, recursive=False)
     filecount = len(filelist)
     fileindex = 0
     printProgressBar(0, filecount, prefix = 'Dump Progress:', suffix = 'Complete', length = 50)
-    for inputfile in filelist:
+    for file in filelist:
         fileindex = fileindex + 1
-        df1 = pd.ExcelFile(inputfile)
-        for x in df1.sheet_names:
-            df2 = pd.read_excel(inputfile, sheetname=x)
-            filename = os.path.join(outdir, os.path.basename(inputfile) + '_' + x + '.' + 'csv')
+        df1 = pd.ExcelFile(file)
+        for sheet in df1.sheet_names:
+            df2 = pd.read_excel(file, sheetname=sheet)
+            filename = os.path.join(outdir, os.path.basename(file) + '_' + sheet + '.' + 'csv')
             df2.to_csv(filename, index=False)
         printProgressBar(fileindex, filecount, prefix = 'Dump Progress:', suffix = 'Complete', length = 50)
 
@@ -84,9 +111,11 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.argument('outdir', type=click.Path(exists=True))
 @click.option('-d', '--dump', type=click.Choice([
     'yes', 'no']), default='no', help='Should I dump fresh csv out of my xlsx files from src directory to dst')
+@click.option('-ss', '--searchsource', type=click.Choice([
+    'yes', 'no']), default='no', help='Search for string in the source(xls) or destination(csv)')
 @click.option('--search', prompt=True, help='Search string, must be in single quotes if contains whitespace. Regex friendly - if searching for multiple values, use | separator')
 
-def cli(indir, outdir, dump, search):
+def cli(indir, outdir, dump, searchsource, search):
     '''Dump every sheet from a workbook to a separate csv file and search for specified value in all resulting files
 
     Examples:
@@ -102,10 +131,14 @@ def cli(indir, outdir, dump, search):
 
     #only dump csv if required, may take a long time if a lot of large files
     if dump == 'yes':
-        getsheets(indir, outdir)
+        dumpcsv(indir, outdir)
 
     #lets search
-    hit_dict = searchfor(outdir,search)
+    if searchsource == 'no':
+        hit_dict = searchcsv(outdir,search)
+    else:
+        hit_dict = searchxls(indir,search)
+
     printres(hit_dict)
 
 if __name__ == "__main__":
