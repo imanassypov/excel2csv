@@ -1,0 +1,24 @@
+pip3 install pandas xlrd  # or `pip install pandas xlrd`
+How does it works?
+
+$ python3 getsheets.py -h
+Usage: getsheets.py [OPTIONS] INPUTFILE
+
+Convert a Excel file with multiple sheets to several file with one sheet.
+
+Examples:
+
+    getsheets filename
+
+    getsheets filename -f csv
+
+Options:
+-f, --format [xlsx|csv]  Default xlsx.
+-h, --help               Show this message and exit.
+Convert to several xlsx:
+
+$ python3 getsheets.py goods_temp.xlsx
+Sheet.xlsx Done!
+Sheet1.xlsx Done!
+
+All Done!
