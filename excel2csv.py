@@ -112,19 +112,25 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option('-d', '--dump', type=click.Choice([
     'yes', 'no']), default='no', help='Should I dump fresh csv out of my xlsx files from src directory to dst')
 @click.option('-ss', '--searchsource', type=click.Choice([
-    'yes', 'no']), default='no', help='Search for string in the source(xls) or destination(csv)')
+    'yes', 'no']), default='no', help='Search in the source(xls) or destination(csv)')
 @click.option('--search', prompt=True, help='Search string, must be in single quotes if contains whitespace. Regex friendly - if searching for multiple values, use | separator')
 
 def cli(indir, outdir, dump, searchsource, search):
-    '''Dump every sheet from a workbook to a separate csv file and search for specified value in all resulting files
+    '''This is a simple utility written in Python3 to search for a string (regex expressions supported) in a given directory
+    containing XLSX spreadsheets. The script will go through every XLSX workbook in the source directory, and every worksheet of that workbook looking for a match.
+    There is also an option to bulk export all of the worksheets out of all of the workbooks to a destination directory. 
+    Search can be done both on the source XLSX directory or on the destination CSV directory (line-by-line)
 
     Examples:
 
     \b
-        getsheets src dst
+        excel2csv src dst
 
     \b
-        getsheets src dst --dump
+        excel2csv src dst --dump yes
+
+    \b
+        excel2csv.py src dst --dump yes --searchsource no --search "Igor|Danik"
     '''
     #resulting search dict of dict's
     hit_dict = {}
